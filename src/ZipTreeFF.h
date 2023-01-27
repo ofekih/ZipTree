@@ -1,7 +1,7 @@
 #ifndef ZIPTREEFF_H
 #define ZIPTREEFF_H
 
-#include "ZipTree.h"
+#include "ZigZagZipTree.h"
 
 #include "cdouble.h"
 
@@ -11,7 +11,7 @@ struct FFBin
 	CDouble bestRemainingCapacity;
 };
 
-class ZipTreeFF : public ZipTree<unsigned, FFBin>
+class ZipTreeFF : public ZigZagZipTree<unsigned, FFBin>
 {
 public:
 	/**

@@ -39,7 +39,7 @@ typename ZipTreeFF::Node* ZipTreeFF::updateNode(Node* node) noexcept
 		getNodeBestRemainingCapacity(node->right)
 	});
 
-	return ZipTree::updateNode(node);
+	return ZigZagZipTree::updateNode(node);
 }
 
 unsigned ZipTreeFF::insertFirstSubtree(Node* node, CDouble itemWeight) noexcept
