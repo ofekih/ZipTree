@@ -1,113 +1,173 @@
 #include "ZipTree.h"
-#include "first_fit.h"
+#include "ZigZagZipTree.h"
 
-#include <algorithm>
-#include <cmath>
-#include <functional>
-#include <iostream>
-#include <numeric>
-#include <random>
 #include <string>
-#include <utility>
+#include <iostream>
+#include <fstream>
+#include <sstream>
+#include <chrono>
+#include <cstdint>
+#include <vector>
+#include <stdio.h>
 
-typedef struct ProblemInstance {
-	std::vector<double> items;
-	std::vector<int> assignments;
-	std::vector<double> free_space;
-} ProblemInstance;
+static const std::string DATA_FILE_DIRECTORY = "data/";
 
-typedef void (*algorithm) (const std::vector<double>&, std::vector<int>&, std::vector<double>&);
 
-bool compare(const std::vector<double>& v1, const std::vector<double>& v2)
+// static const std::string DATA_FILE_PATH = "data/zigzag-true/n-ns-min-med-max-height.csv";
+
+// void save_data(unsigned n, size_t ns, unsigned min, unsigned med, unsigned max, unsigned height)
+// {
+// 	std::ofstream data_file(DATA_FILE_PATH, std::ios::app);
+// 	data_file << n << "," << ns << "," << min << "," << med << "," << max << "," << height << std::endl;
+// }
+
+// void run_experiment(unsigned n)
+// {
+// 	ZigZagZipTree<unsigned, bool> tree;
+
+// 	auto start = std::chrono::high_resolution_clock::now();
+// 	for (unsigned i = 0; i < n; ++i)
+// 	{
+// 		tree.insert(i, false);
+// 	}
+
+// 	unsigned height = tree.getHeight();
+// 	unsigned min_val_depth = tree.getDepth(0);
+// 	unsigned med_val_depth = tree.getDepth(n / 2);
+// 	unsigned max_val_depth = tree.getDepth(n - 1);
+
+// 	auto end = std::chrono::high_resolution_clock::now();
+// 	auto elapsed = std::chrono::duration_cast<std::chrono::nanoseconds>(end - start);
+
+// 	save_data(n, elapsed.count(), min_val_depth, med_val_depth, max_val_depth, height);
+// }
+
+static const std::string DATA_FILE_PATH = "data/zigzag/n-ns-depths.csv";
+// static const std::string ODATA_FILE_PATH = "data/original/n-ns-depths-avg.csv";
+
+void save_data(unsigned n, size_t ns, const std::vector<unsigned>& depths)
 {
-	if (v1.size() != v2.size())
+	std::ofstream data_file(DATA_FILE_PATH, std::ios::app);
+	data_file << n << "," << ns;
+	for (auto depth : depths)
 	{
-		return false;
+		data_file << "," << depth;
+	}
+	data_file << "\n";
+}
+
+void run_experiment(unsigned n)
+{
+	ZigZagZipTree<unsigned, bool> tree;
+
+	auto start = std::chrono::high_resolution_clock::now();
+	for (unsigned i = 0; i < n; ++i)
+	{
+		tree.insert(i, false);
 	}
 
-	// floating point comparison
-	for (int i = 0; i<v1.size(); i++) {
-		if (std::fabs(v1[i] - v2[i]) > 1e-6) {
-			return false;
+	std::vector<unsigned> depths;
+
+	for (unsigned i = 0; i < n; ++i)
+	{
+		depths.push_back(tree.getDepth(i));
+	}
+
+
+	auto end = std::chrono::high_resolution_clock::now();
+	auto elapsed = std::chrono::duration_cast<std::chrono::nanoseconds>(end - start);
+
+	save_data(n, elapsed.count(), depths);
+}
+
+void run_experiments(unsigned num_trials)
+{
+	for (unsigned n = 4194304; ; n *= 2)
+	{
+		auto start = std::chrono::high_resolution_clock::now();
+
+		for (unsigned i = 0; i < num_trials; ++i)
+		{
+			run_experiment(n);
+		}
+
+		auto end = std::chrono::high_resolution_clock::now();
+		std::cout << "n = " << n << " took " << std::chrono::duration_cast<std::chrono::seconds>(end - start).count() << " seconds" << std::endl;
+		break;
+	}
+}
+
+const std::vector<unsigned> read_csv_line(const std::string& line)
+{
+	std::istringstream iss(line);
+	std::string token;
+	std::vector<unsigned> depths;
+	while (std::getline(iss, token, ','))
+	{
+		depths.push_back(std::stoi(token));
+	}
+	return depths;
+}
+
+
+void average_data(const std::string& input, const std::string& output, unsigned n)
+{
+	std::ifstream data_file(input);
+
+	std::vector<unsigned> total_depths(n, 0);
+	unsigned num_trials = 0;
+
+	std::string line;
+	while (std::getline(data_file, line))
+	{
+		const auto& depths = read_csv_line(line);
+
+		if (depths.size() != n + 2) {
+			// std::cout << "ERROR: depths.size() = " << depths.size() << " != " << n + 2 << std::endl;
+			
+			// // print them all out
+			// for (auto depth : depths)
+			// {
+			// 	std::cout << depth << ",";
+			// }
+			// std::cout << std::endl;
+			
+			// exit(1);
+			continue;
+		}
+
+		for (unsigned i = 0; i < n; ++i)
+		{
+			total_depths[i] += depths[i + 2];
+		}
+
+		++num_trials;
+
+		if (num_trials % 100 == 0)
+		{
+			std::cout << "num_trials = " << num_trials << std::endl;
 		}
 	}
-	return true;
+
+	// open file to append
+	std::ofstream data_file_out(output, std::ios::app);
+
+	data_file_out << n << "," << num_trials;
+
+	for (unsigned i = 0; i < n; ++i)
+	{
+		data_file_out << "," << static_cast<double>(total_depths[i]) / num_trials;
+	}
+
+	data_file_out << "\n";
 }
 
-bool testAlgorithm(ProblemInstance test, ProblemInstance expected_result, algorithm algo, std::string name)
-{
-	algo(test.items, test.assignments, test.free_space);
-	return test.assignments == expected_result.assignments and compare(test.free_space, expected_result.free_space);
-}
-
-void assertTrue(bool b, const char * name)
-{
-	std::cout << (b ? "PASSED: " : "FAILED: ") << name << " ";
-}
-
-void testSampleBinPacking()
-{
-	std::vector<double> items {0.1, 0.8, 0.3, 0.5, 0.7, 0.2, 0.6, 0.4};
-	std::vector<int> assignments(items.size(), 0);
-	std::vector<double> free_space;
-	ProblemInstance test1 = {items, assignments, free_space}, expected_result;
-
-	// first_fit
-	expected_result = {items, {1, 1, 2, 2, 3, 2, 4, 4}, {0.1, 0.0, 0.3, 0.0}};
-	assertTrue(testAlgorithm(test1, expected_result, first_fit, "first_fit"), "testFF1");
-
-	// first_fit_decreasing
-	expected_result = {items, {1, 2, 3, 4, 3, 2, 1, 4}, {0.0, 0.0, 0.0, 0.4}};
-	assertTrue(testAlgorithm(test1, expected_result, first_fit_decreasing, "first_fit_decreasing"), "testFFD1");
-
-
-	// ----------------------------------test 2 ----------------------------------
-	std::cout << std::endl;
-	items = {0.79, 0.88, 0.95, 0.12, 0.05, 0.46, 0.53, 0.64, 0.04, 0.38, 0.03, 0.26};
-	assignments = std::vector<int> (items.size(), 0);
-	ProblemInstance test2 = {items, assignments, free_space};
-
-	// first_fit
-	expected_result = {items, {1, 2, 3, 1, 1, 4, 4, 5, 1, 6, 2, 5}, {0, 0.09, 0.05, 0.01, 0.1, 0.62}};
-	assertTrue(testAlgorithm(test2, expected_result, first_fit, "first_fit"), "testFF2");
-
-	// first_fit_decreasing
-	expected_result = {items, {1, 2, 3, 4, 5, 5, 6, 4, 2, 1, 3, 3}, {0, 0, 0.14, 0.1, 0.01, 0.62}};
-	assertTrue(testAlgorithm(test2, expected_result, first_fit_decreasing, "first_fit_decreasing"), "testFFD2");
-
-	// ----------------------------------test 3 ----------------------------------
-	std::cout << std::endl;
-	items = {0.43, 0.75, 0.25, 0.42, 0.54, 0.03, 0.64};
-	assignments = std::vector<int> (items.size(), 0);
-	ProblemInstance test3 = {items, assignments, free_space};
-
-	// first_fit
-	expected_result = {items, {1, 2, 1, 3, 3, 1, 4}, {0.29, 0.25, 0.04, 0.36}};
-	assertTrue(testAlgorithm(test3, expected_result, first_fit, "first_fit"), "testFF3");
-
-	// first_fit_decreasing
-	expected_result = {items, {1, 2, 3, 3, 4, 1, 2}, {0, 0.33, 0.03, 0.58}};
-	assertTrue(testAlgorithm(test3, expected_result, first_fit_decreasing, "first_fit_decreasing"), "testFFD3");
-
-	// ----------------------------------test 4----------------------------------
-	std::cout << std::endl;
-	items = {0.54, 0.67, 0.46, 0.57, 0.06, 0.23, 0.83, 0.64, 0.47, 0.03, 0.53, 0.74, 0.36, 0.24, 0.07, 0.25, 0.05, 0.63, 0.43, 0.04};
-	assignments = std::vector<int> (items.size(), 0);
-	ProblemInstance test4 = {items, assignments, free_space};
-
-	// first_fit
-	expected_result = {items, {1, 2, 1, 3, 2, 2, 4, 5, 6, 2, 6, 7, 3, 5, 3, 7, 4, 8, 9, 4}, {0, 0.01, 0, 0.08, 0.12, 0, 0.01, 0.37, 0.57}};
-	assertTrue(testAlgorithm(test4, expected_result, first_fit, "first_fit"), "testFF4");
-
-	// first_fit_decreasing
-	expected_result = {items, {1, 2, 3, 4, 5, 6, 7, 8, 8, 7, 6, 4, 2, 3, 5, 1, 1, 3, 1, 3}, {0, 0.01, 0.01, 0, 0.14, 0, 0, 0}};
-	assertTrue(testAlgorithm(test4, expected_result, first_fit_decreasing, "first_fit_decreasing"), "testFFD4");
-}
 
 int main()
 {
-	testSampleBinPacking();
-	std::cout << std::endl;
+	average_data("data/zigzag/n-ns-depths.csv", "data/zigzag/n-ns-depths-avg.csv", 4194304);
+
+	// run_experiments(5000);
 
 	return 0;
 }
