@@ -1,13 +1,12 @@
 /**
  * This zip tree implementation is an adaptation of the pseudocode from the
- * 2019 Zip Trees paper by Tarjan et al., with modifications for the zig-zag
- * nature.
+ * 2019 Zip Trees paper by Tarjan et al.
  *
  * See https://arxiv.org/pdf/1806.06726.pdf
  */
 
-#ifndef ZIGZAGZIPTREE_H
-#define ZIGZAGZIPTREE_H
+#ifndef ZIPZIPTREE_H
+#define ZIPZIPTREE_H
 
 #include "BinarySearchTree.h"
 
@@ -15,29 +14,60 @@
 #include <memory>
 #include <random>
 
-#ifndef GETRANDOMRANK_F
-#define GETRANDOMRANK_F
+struct ZZRank
+{
+	uint8_t grank;
+	uint16_t urank;
+
+	bool operator<(const ZZRank& other) const noexcept
+	{
+		return grank < other.grank || (grank == other.grank && urank < other.urank);
+	}
+
+	bool operator>(const ZZRank& other) const noexcept
+	{
+		return grank > other.grank || (grank == other.grank && urank > other.urank);
+	}
+
+
+	bool operator==(const ZZRank& other) const noexcept
+	{
+		return grank == other.grank && urank == other.urank;
+	}
+
+	bool operator<=(const ZZRank& other) const noexcept
+	{
+		return *this < other || *this == other;
+	}
+
+	bool operator>=(const ZZRank& other) const noexcept
+	{
+		return *this > other || *this == other;
+	}
+};
+
+
 namespace
 {
 	/**
 	 * @return a random node rank from a geometric distribution with a mean of 1
 	 */
-	uint8_t getRandomRank()
+	ZZRank getRandomZZRank(uint16_t maxURank)
 	{
 		static std::random_device rd;
 		static std::default_random_engine generator(rd());
-		static std::geometric_distribution<uint8_t> distribution(0.5);
+		static std::geometric_distribution<uint8_t> gdistribution(0.5);
+		static std::uniform_int_distribution<uint16_t> udistribution(0, maxURank);
 
-		return distribution(generator);
+		return {gdistribution(generator), udistribution(generator)};
 	}
 }
-#endif
 
 template <typename KeyType, typename ValType>
-class ZigZagZipTree : public BinarySearchTree<KeyType, ValType>
+class ZipZipTree : public BinarySearchTree<KeyType, ValType>
 {
 public:
-	ZigZagZipTree(unsigned maxSize);
+	ZipZipTree(unsigned maxSize);
 
 	/**
 	 * Inserts a key, value pair into the zip tree. Note that inserting there is
@@ -84,7 +114,7 @@ protected:
 	{
 		KeyType key;
 		ValType val;
-		uint8_t rank;
+		ZZRank rank;
 		std::unique_ptr<Node> left;
 		std::unique_ptr<Node> right;
 	};
@@ -100,7 +130,7 @@ protected:
 	 * is guaranteed not to be null.
 	 *
 	 * For example, it can be used to update the best remaining capacity of nodes
-	 * for the first fit bin packing algorithm, see ZigZagZipTreeFF for an example.
+	 * for the first fit bin packing algorithm, see ZipZipTreeFF for an example.
 	 *
 	 * @param  node the node to modify
 	 * @return      the node after modification
@@ -109,6 +139,7 @@ protected:
 
 private:
 	unsigned _size;
+	unsigned _maxURank;
 
 	Node* insertRecursive(Node* x, std::unique_ptr<Node>& root) noexcept;
 	Node* removeRecursive(const KeyType& key, std::unique_ptr<Node>& root) noexcept;
@@ -118,25 +149,27 @@ private:
 };
 
 template <typename KeyType, typename ValType>
-ZigZagZipTree<KeyType, ValType>::ZigZagZipTree(unsigned maxSize) : _head(nullptr), _size(0u)
+ZipZipTree<KeyType, ValType>::ZipZipTree(unsigned maxSize) : _head(nullptr), _size(0u)
 {
+	_maxURank = std::log2(maxSize);
+	_maxURank = _maxURank * _maxURank * _maxURank;
 }
 
 template <typename KeyType, typename ValType>
-typename ZigZagZipTree<KeyType, ValType>::Node* ZigZagZipTree<KeyType, ValType>::updateNode(Node* node) noexcept
+typename ZipZipTree<KeyType, ValType>::Node* ZipZipTree<KeyType, ValType>::updateNode(Node* node) noexcept
 {
 	return node;
 }
 
 template <typename KeyType, typename ValType>
-void ZigZagZipTree<KeyType, ValType>::insert(const KeyType& key, const ValType& val) noexcept
+void ZipZipTree<KeyType, ValType>::insert(const KeyType& key, const ValType& val) noexcept
 {
-	_head = std::unique_ptr<Node>(insertRecursive(new Node{key, val, getRandomRank(), nullptr, nullptr}, _head));
+	_head = std::unique_ptr<Node>(insertRecursive(new Node{key, val, getRandomZZRank(_maxURank), nullptr, nullptr}, _head));
 	++_size;
 }
 
 template <typename KeyType, typename ValType>
-typename ZigZagZipTree<KeyType, ValType>::Node* ZigZagZipTree<KeyType, ValType>::insertRecursive(Node* x, std::unique_ptr<Node>& root) noexcept
+typename ZipZipTree<KeyType, ValType>::Node* ZipZipTree<KeyType, ValType>::insertRecursive(Node* x, std::unique_ptr<Node>& root) noexcept
 {
 	if (root == nullptr)
 	{
@@ -146,7 +179,7 @@ typename ZigZagZipTree<KeyType, ValType>::Node* ZigZagZipTree<KeyType, ValType>:
 	if (x->key < root->key)
 	{
 		Node* subroot = insertRecursive(x, root->left);
-		if (subroot == x && (x->rank > root->rank || (x->rank == root->rank && x->rank % 2 == 0)))
+		if (subroot == x && x->rank >= root->rank)
 		{
 			root->left = std::unique_ptr<Node>(x->right.release());
 			x->right = std::unique_ptr<Node>(updateNode(root.release()));
@@ -161,7 +194,7 @@ typename ZigZagZipTree<KeyType, ValType>::Node* ZigZagZipTree<KeyType, ValType>:
 	else
 	{
 		Node* subroot = insertRecursive(x, root->right);
-		if (subroot == x && (x->rank > root->rank || (x->rank == root->rank && x->rank % 2 == 1)))
+		if (subroot == x && x->rank > root->rank)
 		{
 			root->right = std::unique_ptr<Node>(x->left.release());
 			x->left = std::unique_ptr<Node>(updateNode(root.release()));
@@ -178,7 +211,7 @@ typename ZigZagZipTree<KeyType, ValType>::Node* ZigZagZipTree<KeyType, ValType>:
 }
 
 template <typename KeyType, typename ValType>
-bool ZigZagZipTree<KeyType, ValType>::remove(const KeyType& key) noexcept
+bool ZipZipTree<KeyType, ValType>::remove(const KeyType& key) noexcept
 {
 	unsigned prevSize = getSize();
 
@@ -188,7 +221,7 @@ bool ZigZagZipTree<KeyType, ValType>::remove(const KeyType& key) noexcept
 }
 
 template <typename KeyType, typename ValType>
-typename ZigZagZipTree<KeyType, ValType>::Node* ZigZagZipTree<KeyType, ValType>::removeRecursive(const KeyType& key, std::unique_ptr<Node>& root) noexcept
+typename ZipZipTree<KeyType, ValType>::Node* ZipZipTree<KeyType, ValType>::removeRecursive(const KeyType& key, std::unique_ptr<Node>& root) noexcept
 {
 	if (!root) // not found
 	{
@@ -214,7 +247,7 @@ typename ZigZagZipTree<KeyType, ValType>::Node* ZigZagZipTree<KeyType, ValType>:
 }
 
 template <typename KeyType, typename ValType>
-typename ZigZagZipTree<KeyType, ValType>::Node* ZigZagZipTree<KeyType, ValType>::zip(Node* x, Node* y) noexcept
+typename ZipZipTree<KeyType, ValType>::Node* ZipZipTree<KeyType, ValType>::zip(Node* x, Node* y) noexcept
 {
 	if (x == nullptr)
 	{
@@ -226,7 +259,7 @@ typename ZigZagZipTree<KeyType, ValType>::Node* ZigZagZipTree<KeyType, ValType>:
 		return x;
 	}
 
-	if (x->rank < y->rank || (x->rank == y->rank && x->rank % 2 == 1))
+	if (x->rank < y->rank)
 	{
 		y->left = std::unique_ptr<Node>(zip(x, y->left.release()));
 
@@ -241,7 +274,7 @@ typename ZigZagZipTree<KeyType, ValType>::Node* ZigZagZipTree<KeyType, ValType>:
 }
 
 template <typename KeyType, typename ValType>
-const ValType* ZigZagZipTree<KeyType, ValType>::find(const KeyType& key) const noexcept
+const ValType* ZipZipTree<KeyType, ValType>::find(const KeyType& key) const noexcept
 {
 	auto* curr = _head.get();
 	while (curr != nullptr)
@@ -264,19 +297,19 @@ const ValType* ZigZagZipTree<KeyType, ValType>::find(const KeyType& key) const n
 }
 
 template <typename KeyType, typename ValType>
-unsigned ZigZagZipTree<KeyType, ValType>::getSize() const noexcept
+unsigned ZipZipTree<KeyType, ValType>::getSize() const noexcept
 {
 	return _size;
 }
 
 template <typename KeyType, typename ValType>
-int ZigZagZipTree<KeyType, ValType>::getHeight() const noexcept
+int ZipZipTree<KeyType, ValType>::getHeight() const noexcept
 {
 	return getHeight(_head);
 }
 
 template <typename KeyType, typename ValType>
-int ZigZagZipTree<KeyType, ValType>::getHeight(const std::unique_ptr<Node>& node) const noexcept
+int ZipZipTree<KeyType, ValType>::getHeight(const std::unique_ptr<Node>& node) const noexcept
 {
 	if (node == nullptr)
 	{
@@ -287,7 +320,7 @@ int ZigZagZipTree<KeyType, ValType>::getHeight(const std::unique_ptr<Node>& node
 }
 
 template <typename KeyType, typename ValType>
-int ZigZagZipTree<KeyType, ValType>::getDepth(const KeyType& key) const noexcept
+int ZipZipTree<KeyType, ValType>::getDepth(const KeyType& key) const noexcept
 {
 	auto* curr = _head.get();
 	int depth = 0;

@@ -8,10 +8,14 @@
 #ifndef ZIPTREE_H
 #define ZIPTREE_H
 
+#include "BinarySearchTree.h"
+
 #include <algorithm>
 #include <memory>
 #include <random>
 
+#ifndef GETRANDOMRANK_F
+#define GETRANDOMRANK_F
 namespace
 {
 	/**
@@ -26,12 +30,13 @@ namespace
 		return distribution(generator);
 	}
 }
+#endif
 
 template <typename KeyType, typename ValType>
-class ZipTree
+class ZipTree : public BinarySearchTree<KeyType, ValType>
 {
 public:
-	ZipTree();
+	ZipTree(unsigned maxSize);
 
 	/**
 	 * Inserts a key, value pair into the zip tree. Note that inserting there is
@@ -112,7 +117,7 @@ private:
 };
 
 template <typename KeyType, typename ValType>
-ZipTree<KeyType, ValType>::ZipTree() : _head(nullptr), _size(0u)
+ZipTree<KeyType, ValType>::ZipTree(unsigned maxSize) : _head(nullptr), _size(0u)
 {
 }
 

@@ -5,7 +5,7 @@ from collections import defaultdict
 from functools import cache
 
 
-from typing import Union, NamedTuple
+from typing import Union, NamedTuple, Generator
 
 import numpy as np
 import math
@@ -15,10 +15,8 @@ import csv
 DATA_FILE_DIRECTORY = Path('data')
 NORMAL_DATA_FILE_NAME = 'n-ns-min-med-max-height.csv'
 AVG_DEPTHS_DATA_FILE_NAME = 'n-ns-depths-avg.csv'
+DEPTHS_DATA_FILE_NAME = 'n-ns-depths.csv'
 
-# DATA_FILE_PATH = Path('data/zigzag/n-ns-min-med-max-height.csv')
-# DATA_FILE_PATH2 = Path('data/original/n-ns-min-med-max-height.csv')
-DATA_FILE_PATH = Path('data/zigzag/n-ns-depths-avg.csv')
 FIGURE_DIRECTORY = Path('figures')
 
 NUM_NODES_INDEX = 0
@@ -109,7 +107,9 @@ def load_avg_depths(ziptree_type: str, n: int) -> (list[int], list[float]):
 	X = list(range(n))
 	Y = list()
 
-	with DATA_FILE_PATH.open('r') as data_file:
+	file = DATA_FILE_DIRECTORY / ziptree_type / AVG_DEPTHS_DATA_FILE_NAME
+
+	with file.open('r') as data_file:
 		reader = csv.reader(data_file)
 		row = next(reader)
 
@@ -119,23 +119,20 @@ def load_avg_depths(ziptree_type: str, n: int) -> (list[int], list[float]):
 	return X, Y
 
 @cache
-def load_avg_depths_moving_average(ziptree_type: str, n: int, resolution: int = 2 ** 14) -> (list[int], list[float]):
-	X = list(range(n // resolution))
-	Y = list()
+def load_depths(ziptree_type: str, n: int, num_snapshots: int) -> Generator[tuple[list[int], list[float]], None, None]:
+	file = DATA_FILE_DIRECTORY / ziptree_type / DEPTHS_DATA_FILE_NAME
 
-	with DATA_FILE_PATH.open('r') as data_file:
+	with file.open('r') as data_file:
 		reader = csv.reader(data_file)
-		row = next(reader)
+		for row in reader:
+			if int(row[NUM_NODES_INDEX]) != n:
+				continue
 
-		total = 0
-		for i in range(n):
-			total += float(row[i + 2])
+			yield list(range(n)), list(float(val) for val in row[2:])
+			num_snapshots -= 1
 
-			if i % resolution == resolution - 1:
-				Y.append(total / resolution)
-				total = 0
-
-	return X, Y
+			if num_snapshots == 0:
+				break
 
 def plot_val(ziptree_type: str, val_index: int, label: str):
 	x, y = load_avg_data(ziptree_type, val_index)
@@ -144,17 +141,18 @@ def plot_val(ziptree_type: str, val_index: int, label: str):
 	plt.text(x[-1], ylog[-1], f'{ylog[-1]:.3f}')
 
 
-def plot_depths(ziptree_type: str, n: int, label: str = 'Average Depth'):
+def plot_depths(ziptree_type: str, n: int, label: str = 'Average Depth / lg'):
 	x, y = load_avg_depths(ziptree_type, n)
 	lg2 = math.log(n, 2)
 	ylog = [y1 / lg2 for y1 in y]
 	plt.scatter(x, ylog, label = label, linewidths=0, marker = ',', s = (72 / DPI) ** 2)
 
-def plot_depths_moving_average(ziptree_type: str, n: int, label: str = 'Average Depth', resolution: int = 2 ** 14):
-	x, y = load_avg_depths_moving_average(ziptree_type, n, resolution)
-	lg2 = math.log(n, 2)
-	ylog = [y1 / lg2 for y1 in y]
-	plt.plot(x, ylog, label = label, linewidth = 0.5)
+
+def plot_depths_snapshot(ziptree_type: str, n: int, num_snapshots: int, label: str = 'Depth / lg'):
+	for x, y in load_depths(ziptree_type, n, num_snapshots):
+		lg2 = math.log(n, 2)
+		ylog = [y1 / lg2 for y1 in y]
+		plt.scatter(x, ylog, label = label, linewidths=0, marker = ',', s = (72 / DPI) ** 2 * 16)
 
 def compare_min_max(savefig: bool = False):
 	def plot_all_vals(ziptree_type: str):
@@ -218,32 +216,24 @@ def compare_depths(n: int, savefig: bool = False):
 
 	plot('Original vs ZigZag Zip-Tree Depths, 5k simulations', 'original-vs-zigzag-depths', savefig, 'Depth', 'Node key')
 
-def compare_depths_moving_average(n: int, savefig: bool = False):
+def compare_depth_snapshots(n: int , savefig: bool):
 	plt.figure(num = 200, figsize = (8, 5), dpi = DPI, facecolor = 'w', edgecolor = 'k')
 
-	plot_depths_moving_average('original', n)
+	plot_depths_snapshot('original', n, 1)
 
-	plot('Original Zip-Tree Depths (Moving Average), 5k simulations', 'original-depths-moving-average', savefig, 'Depth', 'Node key')
-
+	plot('Original Zip-Tree Depths, 1k snapshots', 'original-depths-snapshots', savefig, 'Depth', 'Node key')
 
 	plt.figure(num = 201, figsize = (8, 5), dpi = DPI, facecolor = 'w', edgecolor = 'k')
 
-	plot_depths_moving_average('zigzag', n)
+	plot_depths_snapshot('zigzag', n, 1)
 
-	plot('ZigZag Zip-Tree Depths (Moving Average), 5k simulations', 'zigzag-depths-moving-average', savefig, 'Depth', 'Node key')
-
-
-	plt.figure(num = 202, figsize = (8, 5), dpi = DPI, facecolor = 'w', edgecolor = 'k')
-
-	plot_depths_moving_average('original', n, '(Original) Average Depth')
-	plot_depths_moving_average('zigzag', n, '(ZigZag) Average Depth')
-
-	plot('Original vs ZigZag Zip-Tree Depths (Moving Average), 5k simulations', 'original-vs-zigzag-depths-moving-average', savefig, 'Depth', 'Node key')
+	plot('ZigZag Zip-Tree Depths, 1k snapshots', 'zigzag-depths-snapshots', savefig, 'Depth', 'Node key')
 
 if __name__ == '__main__':
-	savefig = True
+	savefig = False
+	n = 4194304 // 2 ** 12
 
 	# plt.plot(x, ylog, label = 'Average Depth', marker = '.', linewidth=0.02, markersize = 0.02)
 	# compare_min_max(savefig)
-	# compare_depths(4194304, savefig)
-	compare_depths_moving_average(4194304, savefig)
+	# compare_depths(n, savefig)
+	compare_depth_snapshots(n, savefig)
