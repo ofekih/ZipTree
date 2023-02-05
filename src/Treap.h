@@ -5,8 +5,8 @@
  * See https://arxiv.org/pdf/1806.06726.pdf
  */
 
-#ifndef ZIPZIPTREE_H
-#define ZIPZIPTREE_H
+#ifndef TREAP_H
+#define TREAP_H
 
 #include "BinarySearchTree.h"
 
@@ -15,52 +15,43 @@
 #include <random>
 
 
-struct ZZRank
+struct TreapRank
 {
-	uint8_t grank;
-	uint16_t urank;
+	uint64_t urank;
 	uint64_t* totalComparisons;
 	uint64_t* firstTies;
-	uint64_t* bothTies;
 
-	inline int updateComparisons(const ZZRank& other) const noexcept
+	inline int updateComparisons(const TreapRank& other) const noexcept
 	{
 		++(*totalComparisons);
-		if (grank == other.grank)
+		if (urank == other.urank)
 		{
 			++(*firstTies);
-			if (urank == other.urank)
-			{
-				++(*bothTies);
-				return 0;
-			}
-			return urank < other.urank ? -1 : 1;
+			return 0;
 		}
-
-		return grank < other.grank ? -1 : 1;
 	}
 
-	bool operator<(const ZZRank& other) const noexcept
+	bool operator<(const TreapRank& other) const noexcept
 	{
 		return updateComparisons(other) < 0;
 	}
 
-	bool operator>(const ZZRank& other) const noexcept
+	bool operator>(const TreapRank& other) const noexcept
 	{
 		return updateComparisons(other) > 0;
 	}
 
-	bool operator==(const ZZRank& other) const noexcept
+	bool operator==(const TreapRank& other) const noexcept
 	{
 		return updateComparisons(other) == 0;
 	}
 
-	bool operator<=(const ZZRank& other) const noexcept
+	bool operator<=(const TreapRank& other) const noexcept
 	{
 		return updateComparisons(other) <= 0;
 	}
 
-	bool operator>=(const ZZRank& other) const noexcept
+	bool operator>=(const TreapRank& other) const noexcept
 	{
 		return updateComparisons(other) >= 0;
 	}
@@ -70,16 +61,16 @@ struct ZZRank
 namespace
 {
 	/**
-	 * @return a random node rank from a geometric distribution with a mean of 1
+	 * @return a random node rank from a uniform distribution
 	 */
-	ZZRank getRandomZZRank(uint16_t maxURank, uint64_t* totalComparisons, uint64_t* firstTies, uint64_t* bothTies) noexcept
+	TreapRank getRandomTreapRank(uint64_t* totalComparisons, uint64_t* firstTies) noexcept
 	{
 		static std::random_device rd;
 		static std::default_random_engine generator(rd());
 		static std::geometric_distribution<uint8_t> gdistribution(0.5);
-		std::uniform_int_distribution<uint16_t> udistribution(0, maxURank);
+		std::uniform_int_distribution<uint64_t> udistribution(0, std::numeric_limits<uint64_t>::max());
 
-		return {gdistribution(generator), udistribution(generator), totalComparisons, firstTies, bothTies};
+		return {udistribution(generator), totalComparisons, firstTies};
 	}
 }
 
@@ -137,7 +128,7 @@ protected:
 	struct Node
 	{
 		KeyType key;
-		ZZRank rank;
+		TreapRank rank;
 		std::unique_ptr<Node> left;
 		std::unique_ptr<Node> right;
 	};
@@ -162,7 +153,6 @@ protected:
 
 private:
 	unsigned _size;
-	unsigned _maxURank;
 
 	Node* insertRecursive(Node* x, std::unique_ptr<Node>& root) noexcept;
 	Node* removeRecursive(const KeyType& key, std::unique_ptr<Node>& root) noexcept;
@@ -174,8 +164,6 @@ private:
 template <typename KeyType>
 ZipZipTree<KeyType>::ZipZipTree(unsigned maxSize) : BinarySearchTree<KeyType>(maxSize), _head(nullptr), _size(0u)
 {
-	_maxURank = std::log2(maxSize);
-	_maxURank = _maxURank * _maxURank * _maxURank;
 }
 
 template <typename KeyType>
@@ -187,7 +175,7 @@ typename ZipZipTree<KeyType>::Node* ZipZipTree<KeyType>::updateNode(Node* node) 
 template <typename KeyType>
 void ZipZipTree<KeyType>::insert(const KeyType& key) noexcept
 {
-	_head = std::unique_ptr<Node>(insertRecursive(new Node{key, getRandomZZRank(_maxURank, &_totalComparisons, &_firstTies, &_bothTies), nullptr, nullptr}, _head));
+	_head = std::unique_ptr<Node>(insertRecursive(new Node{key, getRandomTreapRank(&_totalComparisons, &_firstTies), nullptr, nullptr}, _head));
 	++_size;
 }
 
