@@ -22,10 +22,10 @@ struct Rank
 
 	inline int updateComparisons(const Rank& other) const noexcept
 	{
-		++(*totalComparisons);
+		// ++(*totalComparisons);
 		if (rank == other.rank)
 		{
-			++(*firstTies);
+			// ++(*firstTies);
 			return 0;
 		}
 
@@ -77,11 +77,14 @@ namespace
 #endif
 
 template <typename KeyType>
-class ZipTree : public BinarySearchTree<KeyType>
+class ZipTree : public BinarySearchTreeRank<KeyType, Rank>
 {
 public:
-	using BinarySearchTree<KeyType>::_totalComparisons;
-	using BinarySearchTree<KeyType>::_firstTies;
+	using BinarySearchTreeRank<KeyType, Rank>::_totalComparisons;
+	using BinarySearchTreeRank<KeyType, Rank>::_firstTies;
+	typedef typename BinarySearchTreeRank<KeyType, Rank>::Node Node;
+	using BinarySearchTreeRank<KeyType, Rank>::_head;
+	using BinarySearchTreeRank<KeyType, Rank>::_size;
 
 	ZipTree(unsigned maxSize);
 
@@ -103,39 +106,7 @@ public:
 	 */
 	bool remove(const KeyType& key) noexcept;
 
-	/**
-	 * @param  key key of node to find
-	 * @return     val of node to find, or nullptr if not found
-	 */
-	bool find(const KeyType& key) const noexcept;
-
-	/**
-	 * @return number of items in zip tree
-	 */
-	unsigned getSize() const noexcept;
-
-	/**
-	 * @return tree height
-	 */
-	int getHeight() const noexcept;
-
-	/**
-	 * @param  key key of node
-	 * @return     depth of node, -1 if not found
-	 */
-	int getDepth(const KeyType& key) const noexcept;
-
 protected:
-	struct Node
-	{
-		KeyType key;
-		Rank rank;
-		std::unique_ptr<Node> left;
-		std::unique_ptr<Node> right;
-	};
-
-	std::unique_ptr<Node> _head;
-
 	/**
 	 * This function is called on nodes after either:
 	 *  - they have a new child on either side
@@ -150,20 +121,16 @@ protected:
 	 * @param  node the node to modify
 	 * @return      the node after modification
 	 */
-	virtual Node* updateNode(Node* node) noexcept;
+	virtual BinarySearchTreeRank<KeyType, Rank>::Node* updateNode(Node* node) noexcept;
 
 private:
-	unsigned _size;
-
 	Node* insertRecursive(Node* x, std::unique_ptr<Node>& root) noexcept;
 	Node* removeRecursive(const KeyType& key, std::unique_ptr<Node>& root) noexcept;
 	Node* zip(Node* x, Node* y) noexcept;
-
-	int getHeight(const std::unique_ptr<Node>& node) const noexcept;
 };
 
 template <typename KeyType>
-ZipTree<KeyType>::ZipTree(unsigned maxSize) : BinarySearchTree<KeyType>(maxSize), _head(nullptr), _size(0u)
+ZipTree<KeyType>::ZipTree(unsigned maxSize) : BinarySearchTreeRank<KeyType, Rank>(maxSize)
 {
 }
 
@@ -225,11 +192,11 @@ typename ZipTree<KeyType>::Node* ZipTree<KeyType>::insertRecursive(Node* x, std:
 template <typename KeyType>
 bool ZipTree<KeyType>::remove(const KeyType& key) noexcept
 {
-	unsigned prevSize = getSize();
+	unsigned prevSize = _size;
 
 	_head = std::unique_ptr<Node>(removeRecursive(key, _head));
 
-	return prevSize == getSize();
+	return prevSize == _size;
 }
 
 template <typename KeyType>
@@ -283,77 +250,6 @@ typename ZipTree<KeyType>::Node* ZipTree<KeyType>::zip(Node* x, Node* y) noexcep
 
 		return updateNode(x);
 	}
-}
-
-template <typename KeyType>
-bool ZipTree<KeyType>::find(const KeyType& key) const noexcept
-{
-	auto* curr = _head.get();
-	while (curr != nullptr)
-	{
-		if (key < curr->key)
-		{
-			curr = curr->left.get();
-		}
-		else if (curr->key < key)
-		{
-			curr = curr->right.get();
-		}
-		else
-		{
-			return true;
-		}
-	}
-
-	return false;
-}
-
-template <typename KeyType>
-unsigned ZipTree<KeyType>::getSize() const noexcept
-{
-	return _size;
-}
-
-template <typename KeyType>
-int ZipTree<KeyType>::getHeight() const noexcept
-{
-	return getHeight(_head);
-}
-
-template <typename KeyType>
-int ZipTree<KeyType>::getHeight(const std::unique_ptr<Node>& node) const noexcept
-{
-	if (node == nullptr)
-	{
-		return -1;
-	}
-
-	return std::max(getHeight(node->left), getHeight(node->right)) + 1;
-}
-
-template <typename KeyType>
-int ZipTree<KeyType>::getDepth(const KeyType& key) const noexcept
-{
-	auto* curr = _head.get();
-	int depth = 0;
-	while (curr != nullptr)
-	{
-		if (key < curr->key)
-		{
-			curr = curr->left.get();
-		}
-		else if (curr->key < key)
-		{
-			curr = curr->right.get();
-		}
-		else
-		{
-			return depth;
-		}
-		++depth;
-	}
-
-	return -1;
 }
 
 #endif

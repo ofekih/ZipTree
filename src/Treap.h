@@ -23,12 +23,13 @@ struct TreapRank
 
 	inline int updateComparisons(const TreapRank& other) const noexcept
 	{
-		++(*totalComparisons);
+		// ++(*totalComparisons);
 		if (urank == other.urank)
 		{
-			++(*firstTies);
+			// ++(*firstTies);
 			return 0;
 		}
+		return urank < other.urank ? -1 : 1;
 	}
 
 	bool operator<(const TreapRank& other) const noexcept
@@ -75,14 +76,16 @@ namespace
 }
 
 template <typename KeyType>
-class ZipZipTree : public BinarySearchTree<KeyType>
+class Treap : public BinarySearchTreeRank<KeyType, TreapRank>
 {
 public:
-	using BinarySearchTree<KeyType>::_totalComparisons;
-	using BinarySearchTree<KeyType>::_firstTies;
-	using BinarySearchTree<KeyType>::_bothTies;
+	using BinarySearchTreeRank<KeyType, TreapRank>::_totalComparisons;
+	using BinarySearchTreeRank<KeyType, TreapRank>::_firstTies;
+	typedef typename BinarySearchTreeRank<KeyType, TreapRank>::Node Node;
+	using BinarySearchTreeRank<KeyType, TreapRank>::_head;
+	using BinarySearchTreeRank<KeyType, TreapRank>::_size;
 
-	ZipZipTree(unsigned maxSize);
+	Treap(unsigned maxSize);
 
 	/**
 	 * Inserts a key, value pair into the zip tree. Note that inserting there is
@@ -102,39 +105,7 @@ public:
 	 */
 	bool remove(const KeyType& key) noexcept;
 
-	/**
-	 * @param  key key of node to find
-	 * @return     val of node to find, or nullptr if not found
-	 */
-	bool find(const KeyType& key) const noexcept;
-
-	/**
-	 * @return number of items in zip tree
-	 */
-	unsigned getSize() const noexcept;
-
-	/**
-	 * @return tree height
-	 */
-	int getHeight() const noexcept;
-
-	/**
-	 * @param  key key of node
-	 * @return     depth of node, -1 if not found
-	 */
-	int getDepth(const KeyType& key) const noexcept;
-
 protected:
-	struct Node
-	{
-		KeyType key;
-		TreapRank rank;
-		std::unique_ptr<Node> left;
-		std::unique_ptr<Node> right;
-	};
-
-	std::unique_ptr<Node> _head;
-
 	/**
 	 * This function is called on nodes after either:
 	 *  - they have a new child on either side
@@ -144,7 +115,7 @@ protected:
 	 * is guaranteed not to be null.
 	 *
 	 * For example, it can be used to update the best remaining capacity of nodes
-	 * for the first fit bin packing algorithm, see ZipZipTreeFF for an example.
+	 * for the first fit bin packing algorithm, see TreapFF for an example.
 	 *
 	 * @param  node the node to modify
 	 * @return      the node after modification
@@ -152,35 +123,31 @@ protected:
 	virtual Node* updateNode(Node* node) noexcept;
 
 private:
-	unsigned _size;
-
 	Node* insertRecursive(Node* x, std::unique_ptr<Node>& root) noexcept;
 	Node* removeRecursive(const KeyType& key, std::unique_ptr<Node>& root) noexcept;
 	Node* zip(Node* x, Node* y) noexcept;
-
-	int getHeight(const std::unique_ptr<Node>& node) const noexcept;
 };
 
 template <typename KeyType>
-ZipZipTree<KeyType>::ZipZipTree(unsigned maxSize) : BinarySearchTree<KeyType>(maxSize), _head(nullptr), _size(0u)
+Treap<KeyType>::Treap(unsigned maxSize) : BinarySearchTreeRank<KeyType, TreapRank>(maxSize)
 {
 }
 
 template <typename KeyType>
-typename ZipZipTree<KeyType>::Node* ZipZipTree<KeyType>::updateNode(Node* node) noexcept
+typename Treap<KeyType>::Node* Treap<KeyType>::updateNode(Node* node) noexcept
 {
 	return node;
 }
 
 template <typename KeyType>
-void ZipZipTree<KeyType>::insert(const KeyType& key) noexcept
+void Treap<KeyType>::insert(const KeyType& key) noexcept
 {
 	_head = std::unique_ptr<Node>(insertRecursive(new Node{key, getRandomTreapRank(&_totalComparisons, &_firstTies), nullptr, nullptr}, _head));
 	++_size;
 }
 
 template <typename KeyType>
-typename ZipZipTree<KeyType>::Node* ZipZipTree<KeyType>::insertRecursive(Node* x, std::unique_ptr<Node>& root) noexcept
+typename Treap<KeyType>::Node* Treap<KeyType>::insertRecursive(Node* x, std::unique_ptr<Node>& root) noexcept
 {
 	if (root == nullptr)
 	{
@@ -222,17 +189,17 @@ typename ZipZipTree<KeyType>::Node* ZipZipTree<KeyType>::insertRecursive(Node* x
 }
 
 template <typename KeyType>
-bool ZipZipTree<KeyType>::remove(const KeyType& key) noexcept
+bool Treap<KeyType>::remove(const KeyType& key) noexcept
 {
-	unsigned prevSize = getSize();
+	unsigned prevSize = _size;
 
 	_head = std::unique_ptr<Node>(removeRecursive(key, _head));
 
-	return prevSize == getSize();
+	return prevSize == _size;
 }
 
 template <typename KeyType>
-typename ZipZipTree<KeyType>::Node* ZipZipTree<KeyType>::removeRecursive(const KeyType& key, std::unique_ptr<Node>& root) noexcept
+typename Treap<KeyType>::Node* Treap<KeyType>::removeRecursive(const KeyType& key, std::unique_ptr<Node>& root) noexcept
 {
 	if (!root) // not found
 	{
@@ -258,7 +225,7 @@ typename ZipZipTree<KeyType>::Node* ZipZipTree<KeyType>::removeRecursive(const K
 }
 
 template <typename KeyType>
-typename ZipZipTree<KeyType>::Node* ZipZipTree<KeyType>::zip(Node* x, Node* y) noexcept
+typename Treap<KeyType>::Node* Treap<KeyType>::zip(Node* x, Node* y) noexcept
 {
 	if (x == nullptr)
 	{
@@ -282,77 +249,6 @@ typename ZipZipTree<KeyType>::Node* ZipZipTree<KeyType>::zip(Node* x, Node* y) n
 
 		return updateNode(x);
 	}
-}
-
-template <typename KeyType>
-bool ZipZipTree<KeyType>::find(const KeyType& key) const noexcept
-{
-	auto* curr = _head.get();
-	while (curr != nullptr)
-	{
-		if (key < curr->key)
-		{
-			curr = curr->left.get();
-		}
-		else if (curr->key < key)
-		{
-			curr = curr->right.get();
-		}
-		else
-		{
-			return true;
-		}
-	}
-
-	return false;
-}
-
-template <typename KeyType>
-unsigned ZipZipTree<KeyType>::getSize() const noexcept
-{
-	return _size;
-}
-
-template <typename KeyType>
-int ZipZipTree<KeyType>::getHeight() const noexcept
-{
-	return getHeight(_head);
-}
-
-template <typename KeyType>
-int ZipZipTree<KeyType>::getHeight(const std::unique_ptr<Node>& node) const noexcept
-{
-	if (node == nullptr)
-	{
-		return -1;
-	}
-
-	return std::max(getHeight(node->left), getHeight(node->right)) + 1;
-}
-
-template <typename KeyType>
-int ZipZipTree<KeyType>::getDepth(const KeyType& key) const noexcept
-{
-	auto* curr = _head.get();
-	int depth = 0;
-	while (curr != nullptr)
-	{
-		if (key < curr->key)
-		{
-			curr = curr->left.get();
-		}
-		else if (curr->key < key)
-		{
-			curr = curr->right.get();
-		}
-		else
-		{
-			return depth;
-		}
-		++depth;
-	}
-
-	return -1;
 }
 
 #endif

@@ -167,7 +167,7 @@ def plot_val(ziptree_type: str, val_index: int, label: str, file_name: str = NOR
 	plt.text(x[-1], ylog[-1], f'{ylog[-1]:.3f}')
 
 def plot_frequency_val(ziptree_type: str, val_index: int, label: str):
-	x, y = load_avg_data(ziptree_type, val_index, file_name = ZIPZIP_NORMAL_FILE_NAME)
+	x, y = load_avg_data(ziptree_type, val_index, file_name = ZIPZIP_NORMAL_FILE_NAME, max_val=2**24)
 	yfreq = [y / x for x, y in zip(x, y)]
 	plt.loglog(x, yfreq, base=2, label = f'# {label} / n')
 	plt.text(x[-1], yfreq[-1], f'{yfreq[-1]:g}')
@@ -197,38 +197,48 @@ def compare_min_max(savefig: bool = False):
 		plot_val(ziptree_type, HEIGHT_INDEX, 'Height', file_name=ZIPZIP_NORMAL_FILE_NAME)
 
 
-	# plt.figure(num = 0, figsize = (8, 5), dpi = DPI, facecolor = 'w', edgecolor = 'k')
+	plt.figure(num = 0, figsize = (8, 5), dpi = DPI, facecolor = 'w', edgecolor = 'k')
 
-	# plot_all_vals('original')
+	plot_all_vals('original')
 
-	# plot('Original Zip-Tree Plot (LogLog), 1k+ simulations', 'original-plot', savefig, 'Depth', 'Num nodes (n)')
+	plot('Original Zip-Tree Plot (LogLog), 5k+ simulations', 'original-plot', savefig, 'Depth', 'Num nodes (n)')
 
 
 	plt.figure(num = 1, figsize = (8, 5), dpi = DPI, facecolor = 'w', edgecolor = 'k')
 
 	plot_all_vals('zipzip')
 
-	plot('ZipZip-Tree Plot (LogLog), 1k+ simulations', 'zipzip-plot', savefig, 'Depth', 'Num nodes (n)')
+	plot('ZipZip-Tree Plot (LogLog), 5k+ simulations', 'zipzip-plot', savefig, 'Depth', 'Num nodes (n)')
+
+	plt.figure(num = 2, figsize = (8, 5), dpi = DPI, facecolor = 'w', edgecolor = 'k')
+
+	plot_all_vals('treap')
+
+	plot('Treap Plot (LogLog), 5k+ simulations', 'treap-plot', savefig, 'Depth', 'Num nodes (n)')
 
 
-	# plt.figure(num = 2, figsize = (8, 5), dpi = DPI, facecolor = 'w', edgecolor = 'k')
+	plt.figure(num = 3, figsize = (8, 5), dpi = DPI, facecolor = 'w', edgecolor = 'k')
 
-	# plot_val('original', MIN_VAL_INDEX, '(Original) Minimum Value')
-	# plot_val('original', MAX_VAL_INDEX, '(Original) Maximum Value')
-	# plot_val('zipzip', MIN_VAL_INDEX, '(ZipZip) Minimum Value')
-	# plot_val('zipzip', MAX_VAL_INDEX, '(ZipZip) Maximum Value')
+	plot_val('original', MIN_VAL_INDEX, '(Original) Minimum Value', file_name=ZIPZIP_NORMAL_FILE_NAME)
+	plot_val('original', MAX_VAL_INDEX, '(Original) Maximum Value', file_name=ZIPZIP_NORMAL_FILE_NAME)
+	plot_val('zipzip', MIN_VAL_INDEX, '(ZipZip) Minimum Value', file_name=ZIPZIP_NORMAL_FILE_NAME)
+	plot_val('zipzip', MAX_VAL_INDEX, '(ZipZip) Maximum Value', file_name=ZIPZIP_NORMAL_FILE_NAME)
+	plot_val('treap', MIN_VAL_INDEX, '(Treap) Minimum Value', file_name=ZIPZIP_NORMAL_FILE_NAME)
+	plot_val('treap', MAX_VAL_INDEX, '(Treap) Maximum Value', file_name=ZIPZIP_NORMAL_FILE_NAME)
 
-	# plot('Original vs ZipZip-Tree Edge Values (LogLog), 1k+ simulations', 'original-vs-zipzip-edge', savefig, 'Depth', 'Num nodes (n)')
+	plot('Original vs ZipZip-Tree Edge Values (LogLog), 5k+ simulations', 'comparison-edge', savefig, 'Depth', 'Num nodes (n)')
 
 
-	# plt.figure(num = 3, figsize = (8, 5), dpi = DPI, facecolor = 'w', edgecolor = 'k')
+	plt.figure(num = 4, figsize = (8, 5), dpi = DPI, facecolor = 'w', edgecolor = 'k')
 
-	# plot_val('original', MED_VAL_INDEX, '(Original) Median Value')
-	# plot_val('original', HEIGHT_INDEX, '(Original) Height')
-	# plot_val('zipzip', MED_VAL_INDEX, '(ZipZip) Median Value')
-	# plot_val('zipzip', HEIGHT_INDEX, '(ZipZip) Height')
+	plot_val('original', MED_VAL_INDEX, '(Original) Median Value', file_name=ZIPZIP_NORMAL_FILE_NAME)
+	plot_val('original', HEIGHT_INDEX, '(Original) Height', file_name=ZIPZIP_NORMAL_FILE_NAME)
+	plot_val('zipzip', MED_VAL_INDEX, '(ZipZip) Median Value', file_name=ZIPZIP_NORMAL_FILE_NAME)
+	plot_val('zipzip', HEIGHT_INDEX, '(ZipZip) Height', file_name=ZIPZIP_NORMAL_FILE_NAME)
+	plot_val('treap', MED_VAL_INDEX, '(Treap) Median Value', file_name=ZIPZIP_NORMAL_FILE_NAME)
+	plot_val('treap', HEIGHT_INDEX, '(Treap) Height', file_name=ZIPZIP_NORMAL_FILE_NAME)
 
-	# plot('Original vs ZipMedian and Height Values (LogLog), 1k+ simulations', 'original-vs-zipzip-median-height', savefig, 'Depth', 'Num nodes (n)')
+	plot('Original vs ZipMedian and Height Values (LogLog), 5k+ simulations', 'comparison-median-height', savefig, 'Depth', 'Num nodes (n)')
 
 def compare_comparisons(savefig: bool = False):
 	plt.figure(num = 301, figsize = (8, 5), dpi = DPI, facecolor = 'w', edgecolor = 'k')
@@ -249,12 +259,20 @@ def compare_comparisons(savefig: bool = False):
 
 	plt.figure(num = 302, figsize = (8, 5), dpi = DPI, facecolor = 'w', edgecolor = 'k')
 
-	plot_frequency_val('original', TOTAL_COMPARISONS_INDEX, 'Comparisons')
-	plot_frequency_val('zipzip', TOTAL_COMPARISONS_INDEX, 'Comparisons')
-	plot_frequency_val('original', FIRST_TIE_INDEX, 'Geometric Tie')
-	plot_frequency_val('zipzip', FIRST_TIE_INDEX, 'Geometric Tie')
+	plot_frequency_val('treap', TOTAL_COMPARISONS_INDEX, 'Comparisons')
+	plot_frequency_val('treap', FIRST_TIE_INDEX, 'Geometric Tie')
 
-	plot('ZipZip-Tree Comparisons (LogLog), 5k+ simulations', 'original-vs-zipzip-comparisons', savefig, 'Frequency', 'Num nodes (n)')
+	plot('Treap Comparisons (LogLog), 5k+ simulations', 'treap-comparisons', savefig, 'Frequency', 'Num nodes (n)')
+
+
+	plt.figure(num = 303, figsize = (8, 5), dpi = DPI, facecolor = 'w', edgecolor = 'k')
+
+	plot_frequency_val('original', TOTAL_COMPARISONS_INDEX, 'Original Comparisons')
+	plot_frequency_val('original', FIRST_TIE_INDEX, 'Original Geometric Tie')
+	plot_frequency_val('zipzip', TOTAL_COMPARISONS_INDEX, 'ZipZip Comparisons')
+	plot_frequency_val('zipzip', FIRST_TIE_INDEX, 'ZipZip Geometric Tie')
+
+	plot('Original vs. ZipZip Comparisons (LogLog), 5k+ simulations', 'original-vs-zipzip-comparisons', savefig, 'Frequency', 'Num nodes (n)')
 
 def compare_depths(n: int, savefig: bool = False):
 	plt.figure(num = 100, figsize = (8, 5), dpi = DPI, facecolor = 'w', edgecolor = 'k')
@@ -292,15 +310,14 @@ def compare_depth_snapshots(n: int , savefig: bool):
 	# plot('ZipZip-Tree Depths, 1k snapshots', 'zipzip-depths-snapshots', savefig, 'Depth', 'Node key')
 
 if __name__ == '__main__':
-	# tell matplotlib to use Okabe Ito color scheme
-	colors = ['#000000', '#E69F00', '#56B4E9', '#009E73', '#F0E442', '#0072B2', '#D55E00', '#CC79A7']
-	plt.rcParams['axes.prop_cycle'] = plt.cycler(color=colors)
+	okabeColors = ['#000000', '#E69F00', '#56B4E9', '#009E73', '#F0E442', '#0072B2', '#D55E00', '#CC79A7']
+	plt.rcParams['axes.prop_cycle'] = plt.cycler(color=okabeColors)
 
 	savefig = True
 	n = 4194304 // 2 ** 12
 
 	# plt.plot(x, ylog, label = 'Average Depth', marker = '.', linewidth=0.02, markersize = 0.02)
 	compare_min_max(savefig)
-	# compare_comparisons(savefig)
+	compare_comparisons(savefig)
 	# compare_depths(n, savefig)
 	# compare_depth_snapshots(n, savefig)

@@ -25,13 +25,13 @@ struct ZZRank
 
 	inline int updateComparisons(const ZZRank& other) const noexcept
 	{
-		++(*totalComparisons);
+		// ++(*totalComparisons);
 		if (grank == other.grank)
 		{
-			++(*firstTies);
+			// ++(*firstTies);
 			if (urank == other.urank)
 			{
-				++(*bothTies);
+				// ++(*bothTies);
 				return 0;
 			}
 			return urank < other.urank ? -1 : 1;
@@ -84,12 +84,15 @@ namespace
 }
 
 template <typename KeyType>
-class ZipZipTree : public BinarySearchTree<KeyType>
+class ZipZipTree : public BinarySearchTreeRank<KeyType, ZZRank>
 {
 public:
-	using BinarySearchTree<KeyType>::_totalComparisons;
-	using BinarySearchTree<KeyType>::_firstTies;
-	using BinarySearchTree<KeyType>::_bothTies;
+	using BinarySearchTreeRank<KeyType, ZZRank>::_totalComparisons;
+	using BinarySearchTreeRank<KeyType, ZZRank>::_firstTies;
+	using BinarySearchTreeRank<KeyType, ZZRank>::_bothTies;
+	typedef typename BinarySearchTreeRank<KeyType, ZZRank>::Node Node;
+	using BinarySearchTreeRank<KeyType, ZZRank>::_head;
+	using BinarySearchTreeRank<KeyType, ZZRank>::_size;
 
 	ZipZipTree(unsigned maxSize);
 
@@ -111,39 +114,7 @@ public:
 	 */
 	bool remove(const KeyType& key) noexcept;
 
-	/**
-	 * @param  key key of node to find
-	 * @return     val of node to find, or nullptr if not found
-	 */
-	bool find(const KeyType& key) const noexcept;
-
-	/**
-	 * @return number of items in zip tree
-	 */
-	unsigned getSize() const noexcept;
-
-	/**
-	 * @return tree height
-	 */
-	int getHeight() const noexcept;
-
-	/**
-	 * @param  key key of node
-	 * @return     depth of node, -1 if not found
-	 */
-	int getDepth(const KeyType& key) const noexcept;
-
 protected:
-	struct Node
-	{
-		KeyType key;
-		ZZRank rank;
-		std::unique_ptr<Node> left;
-		std::unique_ptr<Node> right;
-	};
-
-	std::unique_ptr<Node> _head;
-
 	/**
 	 * This function is called on nodes after either:
 	 *  - they have a new child on either side
@@ -161,18 +132,15 @@ protected:
 	virtual Node* updateNode(Node* node) noexcept;
 
 private:
-	unsigned _size;
 	unsigned _maxURank;
 
 	Node* insertRecursive(Node* x, std::unique_ptr<Node>& root) noexcept;
 	Node* removeRecursive(const KeyType& key, std::unique_ptr<Node>& root) noexcept;
 	Node* zip(Node* x, Node* y) noexcept;
-
-	int getHeight(const std::unique_ptr<Node>& node) const noexcept;
 };
 
 template <typename KeyType>
-ZipZipTree<KeyType>::ZipZipTree(unsigned maxSize) : BinarySearchTree<KeyType>(maxSize), _head(nullptr), _size(0u)
+ZipZipTree<KeyType>::ZipZipTree(unsigned maxSize) : BinarySearchTreeRank<KeyType, ZZRank>(maxSize)
 {
 	_maxURank = std::log2(maxSize);
 	_maxURank = _maxURank * _maxURank * _maxURank;
@@ -236,11 +204,11 @@ typename ZipZipTree<KeyType>::Node* ZipZipTree<KeyType>::insertRecursive(Node* x
 template <typename KeyType>
 bool ZipZipTree<KeyType>::remove(const KeyType& key) noexcept
 {
-	unsigned prevSize = getSize();
+	unsigned prevSize = _size;
 
 	_head = std::unique_ptr<Node>(removeRecursive(key, _head));
 
-	return prevSize == getSize();
+	return prevSize == _size;
 }
 
 template <typename KeyType>
@@ -294,77 +262,6 @@ typename ZipZipTree<KeyType>::Node* ZipZipTree<KeyType>::zip(Node* x, Node* y) n
 
 		return updateNode(x);
 	}
-}
-
-template <typename KeyType>
-bool ZipZipTree<KeyType>::find(const KeyType& key) const noexcept
-{
-	auto* curr = _head.get();
-	while (curr != nullptr)
-	{
-		if (key < curr->key)
-		{
-			curr = curr->left.get();
-		}
-		else if (curr->key < key)
-		{
-			curr = curr->right.get();
-		}
-		else
-		{
-			return true;
-		}
-	}
-
-	return false;
-}
-
-template <typename KeyType>
-unsigned ZipZipTree<KeyType>::getSize() const noexcept
-{
-	return _size;
-}
-
-template <typename KeyType>
-int ZipZipTree<KeyType>::getHeight() const noexcept
-{
-	return getHeight(_head);
-}
-
-template <typename KeyType>
-int ZipZipTree<KeyType>::getHeight(const std::unique_ptr<Node>& node) const noexcept
-{
-	if (node == nullptr)
-	{
-		return -1;
-	}
-
-	return std::max(getHeight(node->left), getHeight(node->right)) + 1;
-}
-
-template <typename KeyType>
-int ZipZipTree<KeyType>::getDepth(const KeyType& key) const noexcept
-{
-	auto* curr = _head.get();
-	int depth = 0;
-	while (curr != nullptr)
-	{
-		if (key < curr->key)
-		{
-			curr = curr->left.get();
-		}
-		else if (curr->key < key)
-		{
-			curr = curr->right.get();
-		}
-		else
-		{
-			return depth;
-		}
-		++depth;
-	}
-
-	return -1;
 }
 
 #endif
