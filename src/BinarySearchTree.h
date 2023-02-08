@@ -78,7 +78,7 @@ protected:
 
 private:
 	int getHeight(const std::unique_ptr<Node>& node) const noexcept;
-	int getTotalDepth(const std::unique_ptr<Node>& node, int depth) const noexcept;
+	uint64_t getTotalDepth(const std::unique_ptr<Node>& node, uint64_t depth) const noexcept;
 };
 
 template <typename KeyType, typename RankType>
@@ -164,7 +164,7 @@ double BinarySearchTreeRank<KeyType, RankType>::getAverageHeight() const noexcep
 }
 
 template <typename KeyType, typename RankType>
-int BinarySearchTreeRank<KeyType, RankType>::getTotalDepth(const std::unique_ptr<Node>& node, int depth) const noexcept
+uint64_t BinarySearchTreeRank<KeyType, RankType>::getTotalDepth(const std::unique_ptr<Node>& node, uint64_t depth) const noexcept
 {
 	if (node == nullptr)
 	{

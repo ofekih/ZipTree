@@ -2,9 +2,9 @@ CXX = g++
 
 CXXFLAGS = -std=c++2a -O3
 
-BINARIES= test
+BINARIES=test
 
-all: ${BINARIES}
+all: ${BINARIES} src/*.cpp
 	@./test
 
 test:
