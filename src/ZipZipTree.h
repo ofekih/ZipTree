@@ -132,7 +132,7 @@ protected:
 	virtual Node* updateNode(Node* node) noexcept;
 
 private:
-	unsigned _maxURank;
+	uint16_t _maxURank;
 
 	Node* insertRecursive(Node* x, std::unique_ptr<Node>& root) noexcept;
 	Node* removeRecursive(const KeyType& key, std::unique_ptr<Node>& root) noexcept;

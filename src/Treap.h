@@ -64,12 +64,12 @@ namespace
 	/**
 	 * @return a random node rank from a uniform distribution
 	 */
-	TreapRank getRandomTreapRank(uint64_t* totalComparisons, uint64_t* firstTies) noexcept
+	TreapRank getRandomTreapRank(uint64_t maxURank, uint64_t* totalComparisons, uint64_t* firstTies) noexcept
 	{
 		static std::random_device rd;
 		static std::default_random_engine generator(rd());
 		static std::geometric_distribution<uint8_t> gdistribution(0.5);
-		std::uniform_int_distribution<uint64_t> udistribution(0, std::numeric_limits<uint64_t>::max());
+		std::uniform_int_distribution<uint64_t> udistribution(0, maxURank);
 
 		return {udistribution(generator), totalComparisons, firstTies};
 	}
@@ -106,6 +106,8 @@ public:
 	bool remove(const KeyType& key) noexcept;
 
 protected:
+	uint64_t _maxURank;
+
 	/**
 	 * This function is called on nodes after either:
 	 *  - they have a new child on either side
@@ -131,6 +133,10 @@ private:
 template <typename KeyType>
 Treap<KeyType>::Treap(unsigned maxSize) : BinarySearchTreeRank<KeyType, TreapRank>(maxSize)
 {
+	if (maxSize > 2097152)
+		_maxURank = std::numeric_limits<uint64_t>::max();
+	else
+		_maxURank = static_cast<uint64_t>(maxSize) * maxSize * maxSize;
 }
 
 template <typename KeyType>
@@ -142,7 +148,7 @@ typename Treap<KeyType>::Node* Treap<KeyType>::updateNode(Node* node) noexcept
 template <typename KeyType>
 void Treap<KeyType>::insert(const KeyType& key) noexcept
 {
-	_head = std::unique_ptr<Node>(insertRecursive(new Node{key, getRandomTreapRank(&_totalComparisons, &_firstTies), nullptr, nullptr}, _head));
+	_head = std::unique_ptr<Node>(insertRecursive(new Node{key, getRandomTreapRank(_maxURank, &_totalComparisons, &_firstTies), nullptr, nullptr}, _head));
 	++_size;
 }
 

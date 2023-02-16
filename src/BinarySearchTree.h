@@ -13,7 +13,7 @@ public:
 	virtual ~BinarySearchTree() = default;
 
 	virtual void insert(const KeyType& key) noexcept = 0;
-	virtual bool remove(const KeyType& key) noexcept = 0;
+	// virtual bool remove(const KeyType& key) noexcept = 0;
 	virtual int getDepth(const KeyType& key) const noexcept = 0;
 	virtual int getHeight() const noexcept = 0;
 	virtual double getAverageHeight() const noexcept = 0;
