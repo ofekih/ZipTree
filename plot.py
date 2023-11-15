@@ -23,7 +23,7 @@ AVG_DEPTHS_DATA_FILE_NAME = 'n-ns-depths-avg.csv'
 DEPTHS_DATA_FILE_NAME = 'n-ns-depths.csv'
 TREAP_COMPARISON_FILE_NAME = 'n-ns-min-med-max-height-avg-tc-ft-bt.csv'
 NEW_COMPARISON_DATA_FILE_NAME = 'n-cnt-ns-min-med-max-height-avg-tc-ft-bt.csv'
-NEW_DYNAMIC_DATA_FILE_NAME = 'n-cnt-ns-min-med-max-height-avg-tc-ft-bt-mb-ab.csv'
+NEW_DYNAMIC_DATA_FILE_NAME = 'n-cnt-ns-min-med-max-height-avg-tc-ft-bt-mgb-agb-mub-aub.csv'
 
 FIGURE_DIRECTORY = Path('figures')
 
@@ -40,6 +40,12 @@ SQRT_INDEX = 6
 TOTAL_COMPARISONS_INDEX = 7
 FIRST_TIE_INDEX = 8
 BOTH_TIE_INDEX = 9
+
+MAX_GEOMETRIC_BITS_INDEX = 11
+AVG_GEOMETRIC_BITS_INDEX = 12
+MAX_UNIFORM_BITS_INDEX = 13
+AVG_UNIFORM_BITS_INDEX = 14
+
 DPI = 300
 
 class FitLine(NamedTuple):
@@ -392,7 +398,6 @@ def compare_min_max(savefig: bool = False):
 
 	# plot('Zip-Zip Tree Comparison (LogLog), 10k+ simulations', 'comparison-zipzip', savefig, 'Average Depth', 'Num nodes (n)')
 
-
 def compare_comparisons(savefig: bool = False):
 	# plt.figure(num = 301, figsize = (8, 5), dpi = DPI, facecolor = 'w', edgecolor = 'k')
 
@@ -431,6 +436,15 @@ def compare_comparisons(savefig: bool = False):
 	plot_frequency_val('zipzip', BOTH_TIE_INDEX, 'Zip-Zip Both Ties', max_val=max_val)
 
 	plot('# of Rank Comparisons Comparison (LogLog), 10k+ simulations', 'sequential-comparison-comparisons', savefig, 'Frequency', 'Num nodes (n)', legend_loc = 'center left')
+
+def compare_dynamic_sizes(savefig: bool = False):
+	plt.figure(num = 400, figsize = (8, 5), dpi = DPI, facecolor = 'w', edgecolor = 'k')
+
+	plot_val('dynamic', MAX_GEOMETRIC_BITS_INDEX, 'Max Geometric Bits', file_name=DYNAMIC_DATA_FILE_NAME)
+	plot_val('dynamic', AVG_GEOMETRIC_BITS_INDEX, 'Avg Geometric Bits', file_name=DYNAMIC_DATA_FILE_NAME)
+	plot_val('dynamic', MAX_GEOMETRIC_INDEX, 'Max Geometric', file_name=DYNAMIC_DATA_FILE_NAME)
+	plot_val('dynamic', AVG_GEOMETRIC_INDEX, 'Avg Geometric', file_name=DYNAMIC_DATA_FILE_NAME)
+
 
 def compare_depths(n: int, savefig: bool = False):
 	plt.figure(num = 100, figsize = (8, 5), dpi = DPI, facecolor = 'w', edgecolor = 'k')
@@ -475,7 +489,9 @@ if __name__ == '__main__':
 	# n = 4194304 // 2 ** 12
 
 	# plt.plot(x, ylog, label = 'Average Depth', marker = '.', linewidth=0.02, markersize = 0.02)
-	compare_min_max(savefig)
+	# compare_min_max(savefig)
 	# compare_comparisons(savefig)
 	# compare_depths(n, savefig)
 	# compare_depth_snapshots(n, savefig)
+
+	compare_dynamic_size(savefig)

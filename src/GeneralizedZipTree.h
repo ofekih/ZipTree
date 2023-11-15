@@ -60,6 +60,11 @@ public:
 		return _bothTies;
 	}
 
+	const RankType& getRootRank() const noexcept
+	{
+		return _buckets[_rootIndex].rank;
+	}
+
 protected:
 	uint64_t _totalComparisons;
 	uint64_t _firstTies;
