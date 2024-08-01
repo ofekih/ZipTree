@@ -56,22 +56,25 @@ class ZipTreeVariableP : public GeneralizedZipTree<KeyType, GeometricRank>
 public:
     // p should be within the range (0, 1)
 	ZipTreeVariableP(unsigned maxSize, double p)
-        : GeneralizedZipTree<KeyType, GeometricRank>(maxSize), p(p) {}
+        : GeneralizedZipTree<KeyType, GeometricRank>(maxSize), p(p)
+    {
+        distribution = std::geometric_distribution<uint64_t>(p);
+    }
 
     double getP() const noexcept { return p; }
 
 protected:
 	GeometricRank getRandomRank(uint64_t* totalComparisons, uint64_t* firstTies, uint64_t* bothTies) const noexcept override
 	{
-		static std::random_device rd;
-		static std::default_random_engine generator(rd());
-		static std::geometric_distribution<uint64_t> distribution(p);
+        static std::random_device rd;
+		static std::mt19937_64 generator(rd());
 
 		return {distribution(generator), totalComparisons, firstTies};
-		// return {get_random_geometric(), totalComparisons, firstTies};
 	}
+
 private:
     const double p;
+    mutable std::geometric_distribution<uint64_t> distribution;
 };
 
 

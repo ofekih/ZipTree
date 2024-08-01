@@ -3,7 +3,8 @@
 
 #include "GeneralizedZipTree.h"
 
-#include <random>
+#include "UniformOpenSSLRandom.h"
+// #include <random>
 
 struct GeometricRank
 {
@@ -58,11 +59,12 @@ public:
 protected:
 	GeometricRank getRandomRank(uint64_t* totalComparisons, uint64_t* firstTies, uint64_t* bothTies) const noexcept override
 	{
-		static std::random_device rd;
-		static std::default_random_engine generator(rd());
-		static std::geometric_distribution<uint8_t> distribution(0.5);
+		// static std::random_device rd;
+		// static std::default_random_engine generator(rd());
+		// static std::geometric_distribution<uint8_t> distribution(0.5);
 
-		return {distribution(generator), totalComparisons, firstTies};
+		// return {distribution(generator), totalComparisons, firstTies};
+		return {get_random_geometric(), totalComparisons, firstTies};
 	}
 };
 

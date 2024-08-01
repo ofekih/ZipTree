@@ -3,7 +3,8 @@
 
 #include "GeneralizedZipTree.h"
 
-#include <random>
+#include "UniformOpenSSLRandom.h"
+// #include <random>
 
 struct UniformRank
 {
@@ -57,11 +58,12 @@ public:
 protected:
 	UniformRank getRandomRank(uint64_t* totalComparisons, uint64_t* firstTies, uint64_t* bothTies) const noexcept override
 	{
-		static std::random_device rd;
-		static std::default_random_engine generator(rd());
-		std::uniform_int_distribution<uint64_t> udistribution(0, _maxURank);
+		// static std::random_device rd;
+		// static std::default_random_engine generator(rd());
+		// std::uniform_int_distribution<uint64_t> udistribution(0, _maxURank);
 
-		return {udistribution(generator), totalComparisons, firstTies};
+		// return {udistribution(generator), totalComparisons, firstTies};
+		return {get_random_uint64(0, _maxURank), totalComparisons, firstTies};
 	}
 
 private:

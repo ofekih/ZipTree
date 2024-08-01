@@ -3,6 +3,7 @@
 
 #include "GeneralizedZipTree.h"
 
+#include "UniformOpenSSLRandom.h"
 #include <random>
 
 struct GeometricUniformRank
@@ -71,6 +72,7 @@ protected:
 		std::uniform_int_distribution<uint16_t> udistribution(0, _maxURank);
 
 		return {gdistribution(generator), udistribution(generator), totalComparisons, firstTies, bothTies};
+		// return {get_random_geometric(), get_random_uint64(0, _maxURank), totalComparisons, firstTies, bothTies};
 	}
 
 private:
